@@ -273,7 +273,7 @@ export class MultipartUploader extends EventEmitter<MultipartUploaderEvents> {
     finishedPartsLookup: Record<number, object> = {}
   ): Promise<UploadPartResponse>[] {
     const promisesArr: Promise<UploadPartResponse>[] = [];
-    const executing = new Set(); // used to throttle the PUT promises. Must be declared outside the for loop, so it persists across the loop
+    const executing = new Set<Promise<unknown>>(); // used to throttle the PUT promises. Must be declared outside the for loop, so it persists across the loop
 
     // if there are no finishedParts (if this is a fresh upload), reset the percentage progress object
     if (Object.keys(finishedPartsLookup).length === 0) {

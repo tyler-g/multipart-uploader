@@ -1,11 +1,11 @@
 import { UploadPartResponse } from '../shared/index.js';
 
 // throttle any Promise-returning fn, to a certain number of concurrent executions
-export async function promiseFnThrottle(
-  fn: (...args: unknown[]) => Promise<unknown>,
-  executing: Set<unknown>,
+export async function promiseFnThrottle<T>(
+  fn: () => Promise<T>,
+  executing: Set<Promise<unknown>>,
   concurrencyLimit: number
-) {
+): Promise<T> {
   while (executing.size >= concurrencyLimit) {
     // eslint-disable-next-line no-await-in-loop
     await Promise.race(executing);
