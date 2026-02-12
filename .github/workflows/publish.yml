@@ -1,0 +1,82 @@
+# Adapted from https://michaelzanggl.com/articles/github-actions-cd-setup/
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      newversion:
+        description: 'major | minor | patch | premajor | preminor | prepatch | prerelease | from-git'
+        required: false
+        default: 'minor'
+
+permissions:
+  contents: write
+
+jobs:
+  code-quality:
+    uses: ./.github/workflows/code_quality.yml
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  publish:
+    needs: code-quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Get the entire history for the changelog.
+          fetch-depth: 0
+
+      # Install Node.js
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Clean install.
+      - run: npm ci
+
+      # Build the project (needed for npm publish).
+      - run: npm run build
+
+      # Configure Git.
+      - run: git config --global user.name "Open Source Agent"
+      - run: git config --global user.email "open-sourcer-council@insider.com"
+
+      # Bump package version.
+      # https://docs.npmjs.com/cli/v7/commands/npm-version
+      - run: npm version ${{ github.event.inputs.newversion }}
+
+      # Retrieve version
+      - name: Retrieve version
+        run: echo "NEW_VERSION=$(grep '"version":' package.json | cut -d\" -f4)" >> "$GITHUB_OUTPUT"
+        id: version
+
+      # https://github.com/cookpete/auto-changelog
+      - name: Generate CHANGELOG.md
+        run: |
+          npx auto-changelog && git add CHANGELOG.md && git commit -am "v${{ steps.version.outputs.NEW_VERSION }}: Generate CHANGELOG.md"
+
+      - name: Generate release description
+        run: |
+          npx auto-changelog --starting-version "v${{ steps.version.outputs.NEW_VERSION }}" --output "${{ github.workspace }}/node_modules/release.md"
+
+      - name: Push version changes to GitHub.
+        run: git push --follow-tags
+
+      # https://github.com/softprops/action-gh-release
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: 'v${{ steps.version.outputs.NEW_VERSION }}'
+          body_path: '${{ github.workspace }}/node_modules/release.md'
+
+      # Publish to npm.
+      # https://docs.npmjs.com/cli/v7/commands/npm-publish
+      - run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
