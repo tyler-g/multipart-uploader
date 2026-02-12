@@ -1,6 +1,8 @@
 import {
-  S3,
+  S3Client,
   UploadPartCommand,
+  CreateMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
   CreateMultipartUploadCommandInput,
   CompleteMultipartUploadCommandInput,
   S3ClientConfig,
@@ -11,7 +13,7 @@ import type { UploadPartResponse } from '../shared/index.js';
 import type { AwsConfig, FilenameGeneratorFn } from './types.js';
 
 function getS3(config: S3ClientConfig) {
-  return new S3(config);
+  return new S3Client(config);
 }
 
 export const getUploadPartURL = async (
@@ -66,7 +68,9 @@ export const createS3MultipartUpload = async (
     delete command.ContentType;
   }
 
-  const multipartUpload = await s3.createMultipartUpload(command);
+  const multipartUpload = await s3.send(
+    new CreateMultipartUploadCommand(command)
+  );
   const { UploadId } = multipartUpload;
 
   return {
@@ -91,5 +95,5 @@ export const completeS3MultipartUpload = async (
       Parts: parts,
     },
   };
-  return s3.completeMultipartUpload(command);
+  return s3.send(new CompleteMultipartUploadCommand(command));
 };
