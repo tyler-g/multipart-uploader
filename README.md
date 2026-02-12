@@ -2,7 +2,7 @@ a fully typed lightweight, highly configurable, resumeable javascript S3 uploade
 
 ##### an uploader that just works!
 
-<img src="https://github.com/user-attachments/assets/85f4fca3-5778-4bdf-aa82-2f53e5c47c97" width="500">
+<img alt="multipart-uploader-logo" src="https://github.com/user-attachments/assets/7918ceb9-c6aa-4875-975d-ef5eef4d1ead width="500">
 
 - 🇹🇸 Fully typed
 - 🪶 Lightweight – only dependency is the aws s3 sdk
