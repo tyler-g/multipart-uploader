@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   code-quality:
@@ -54,6 +55,12 @@ jobs:
       # https://docs.npmjs.com/cli/v7/commands/npm-version
       - run: npm version ${{ github.event.inputs.newversion }} --no-git-tag-version
 
+      # Sync jsr.json version with the bumped package.json version.
+      - name: Sync jsr.json version
+        run: |
+          NEW_VER=$(grep '"version":' package.json | cut -d\" -f4)
+          jq --arg v "$NEW_VER" '.version = $v' jsr.json > jsr.json.tmp && mv jsr.json.tmp jsr.json
+
       # Retrieve version
       - name: Retrieve version
         run: echo "NEW_VERSION=$(grep '"version":' package.json | cut -d\" -f4)" >> "$GITHUB_OUTPUT"
@@ -63,7 +70,7 @@ jobs:
       # already exists from a previously failed run).
       - name: Commit and tag version bump
         run: |
-          git add package.json package-lock.json
+          git add package.json package-lock.json jsr.json
           git commit -m "v${{ steps.version.outputs.NEW_VERSION }}"
           git tag -fa "v${{ steps.version.outputs.NEW_VERSION }}" -m "${{ steps.version.outputs.NEW_VERSION }}"
 
@@ -93,3 +100,8 @@ jobs:
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Publish to JSR.
+      # Uses OIDC-based authentication (id-token: write permission).
+      # https://jsr.io/docs/publishing-packages#publishing-from-github-actions
+      - run: npx jsr publish --allow-dirty
