@@ -1,6 +1,6 @@
 {
   "name": "@tyler-g/multipart-uploader",
-  "version": "0.0.2",
+  "version": "1.0.1-3",
   "license": "Apache-2.0",
   "exports": {
     ".": "./src/shared/index.ts",
