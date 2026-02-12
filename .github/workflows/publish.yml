@@ -1,0 +1,106 @@
+# Adapted from https://michaelzanggl.com/articles/github-actions-cd-setup/
+name: Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      newversion:
+        description: 'major | minor | patch | premajor | preminor | prepatch | prerelease | from-git'
+        required: false
+        default: 'minor'
+
+jobs:
+  code-quality:
+    uses: ./.github/workflows/code_quality.yml
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  publish:
+    needs: code-quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Get the entire history for the changelog.
+          fetch-depth: 0
+          # Use a PAT to allow pushing to the protected main branch.
+          token: ${{ secrets.GH_PAT }}
+
+      # Install Node.js
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Clean install.
+      - run: npm ci
+
+      # Build the project (needed for npm publish).
+      - run: npm run build
+
+      # Configure Git.
+      - run: git config --global user.name "MultiPart Uploader CI"
+      - run: git config --global user.email "mail@tyler-g.com"
+
+      # Bump package version (no-git-tag-version to avoid conflicts with
+      # existing tags from previously failed runs).
+      # https://docs.npmjs.com/cli/v7/commands/npm-version
+      - run: npm version ${{ github.event.inputs.newversion }} --no-git-tag-version
+
+      # Sync jsr.json version with the bumped package.json version.
+      - name: Sync jsr.json version
+        run: |
+          NEW_VER=$(grep '"version":' package.json | cut -d\" -f4)
+          jq --arg v "$NEW_VER" '.version = $v' jsr.json > jsr.json.tmp && mv jsr.json.tmp jsr.json
+
+      # Retrieve version
+      - name: Retrieve version
+        run: echo "NEW_VERSION=$(grep '"version":' package.json | cut -d\" -f4)" >> "$GITHUB_OUTPUT"
+        id: version
+
+      # Commit version bump and force-create tag (overwrites tag if it
+      # already exists from a previously failed run).
+      - name: Commit and tag version bump
+        run: |
+          git add package.json package-lock.json jsr.json
+          git commit -m "v${{ steps.version.outputs.NEW_VERSION }}"
+          git tag -fa "v${{ steps.version.outputs.NEW_VERSION }}" -m "${{ steps.version.outputs.NEW_VERSION }}"
+
+      # https://github.com/cookpete/auto-changelog
+      - name: Generate CHANGELOG.md
+        run: |
+          npx auto-changelog && git add CHANGELOG.md && git commit -am "v${{ steps.version.outputs.NEW_VERSION }}: Generate CHANGELOG.md"
+
+      - name: Generate release description
+        run: |
+          npx auto-changelog --starting-version "v${{ steps.version.outputs.NEW_VERSION }}" --output "${{ github.workspace }}/node_modules/release.md"
+
+      - name: Push version changes to GitHub.
+        run: |
+          git push --force
+          git push origin "v${{ steps.version.outputs.NEW_VERSION }}" --force
+
+      # https://github.com/softprops/action-gh-release
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: 'v${{ steps.version.outputs.NEW_VERSION }}'
+          body_path: '${{ github.workspace }}/node_modules/release.md'
+
+      # Publish to npm.
+      # https://docs.npmjs.com/cli/v7/commands/npm-publish
+      - run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Publish to JSR.
+      # Uses OIDC-based authentication (id-token: write permission).
+      # https://jsr.io/docs/publishing-packages#publishing-from-github-actions
+      - run: npx jsr publish --allow-dirty

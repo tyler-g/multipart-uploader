@@ -1,0 +1,57 @@
+{
+  "name": "@tyler-g/multipart-uploader",
+  "version": "0.0.1",
+  "description": "a lightweight, highly configurable, resumable multipart s3 uploader",
+  "main": "dist/shared/index.js",
+  "types": "dist/shared/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/shared/index.js",
+      "require": "./dist/shared/index.js"
+    },
+    "./client": {
+      "import": "./dist/client/index.js",
+      "require": "./dist/client/index.js"
+    },
+    "./server": {
+      "import": "./dist/server/index.js",
+      "require": "./dist/server/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint .",
+    "lint:debug": "DEBUG=eslint:* eslint .",
+    "lint:fix": "eslint --fix .",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:ci": "vitest",
+    "coverage": "vitest run --coverage",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "@typescript-eslint/eslint-plugin": "^8.8.1",
+    "@typescript-eslint/parser": "^8.8.1",
+    "@vitest/coverage-v8": "^2.1.5",
+    "@vitest/ui": "^2.1.5",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "jsdom": "^25.0.1",
+    "npm-package-json-lint": "^9.1.0",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.3.0",
+    "vitest": "^2.1.5"
+  },
+  "author": "mail@tyler-g.com",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.670.0",
+    "@aws-sdk/s3-request-presigner": "^3.988.0"
+  }
+}
