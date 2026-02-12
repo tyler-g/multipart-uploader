@@ -28,6 +28,8 @@ jobs:
         with:
           # Get the entire history for the changelog.
           fetch-depth: 0
+          # Use a PAT to allow pushing to the protected main branch.
+          token: ${{ secrets.GH_PAT }}
 
       # Install Node.js
       - name: Use Node.js
