@@ -47,14 +47,23 @@ jobs:
       - run: git config --global user.name "MultiPart Uploader CI"
       - run: git config --global user.email "mail@tyler-g.com"
 
-      # Bump package version.
+      # Bump package version (no-git-tag-version to avoid conflicts with
+      # existing tags from previously failed runs).
       # https://docs.npmjs.com/cli/v7/commands/npm-version
-      - run: npm version ${{ github.event.inputs.newversion }}
+      - run: npm version ${{ github.event.inputs.newversion }} --no-git-tag-version
 
       # Retrieve version
       - name: Retrieve version
         run: echo "NEW_VERSION=$(grep '"version":' package.json | cut -d\" -f4)" >> "$GITHUB_OUTPUT"
         id: version
+
+      # Commit version bump and force-create tag (overwrites tag if it
+      # already exists from a previously failed run).
+      - name: Commit and tag version bump
+        run: |
+          git add package.json package-lock.json
+          git commit -m "v${{ steps.version.outputs.NEW_VERSION }}"
+          git tag -fa "v${{ steps.version.outputs.NEW_VERSION }}" -m "${{ steps.version.outputs.NEW_VERSION }}"
 
       # https://github.com/cookpete/auto-changelog
       - name: Generate CHANGELOG.md
@@ -66,7 +75,9 @@ jobs:
           npx auto-changelog --starting-version "v${{ steps.version.outputs.NEW_VERSION }}" --output "${{ github.workspace }}/node_modules/release.md"
 
       - name: Push version changes to GitHub.
-        run: git push --follow-tags
+        run: |
+          git push
+          git push origin "v${{ steps.version.outputs.NEW_VERSION }}" --force
 
       # https://github.com/softprops/action-gh-release
       - name: Release
