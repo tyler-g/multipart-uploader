@@ -85,7 +85,7 @@ jobs:
 
       - name: Push version changes to GitHub.
         run: |
-          git push
+          git push --force
           git push origin "v${{ steps.version.outputs.NEW_VERSION }}" --force
 
       # https://github.com/softprops/action-gh-release
