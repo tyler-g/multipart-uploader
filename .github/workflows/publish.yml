@@ -44,8 +44,8 @@ jobs:
       - run: npm run build
 
       # Configure Git.
-      - run: git config --global user.name "Open Source Agent"
-      - run: git config --global user.email "open-sourcer-council@insider.com"
+      - run: git config --global user.name "MultiPart Uploader CI"
+      - run: git config --global user.email "mail@tyler-g.com"
 
       # Bump package version.
       # https://docs.npmjs.com/cli/v7/commands/npm-version

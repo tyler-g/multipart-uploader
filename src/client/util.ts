@@ -2,7 +2,7 @@ import { UploadPartResponse } from '../shared/index.js';
 
 // throttle any Promise-returning fn, to a certain number of concurrent executions
 export async function promiseFnThrottle(
-  fn: Function,
+  fn: (...args: unknown[]) => Promise<unknown>,
   executing: Set<unknown>,
   concurrencyLimit: number
 ) {
@@ -27,7 +27,7 @@ export function getAndParseLS(key: string) {
 
   try {
     return JSON.parse(dataString);
-  } catch (err) {
+  } catch {
     // invalid JSON
     return null;
   }
