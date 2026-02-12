@@ -68,7 +68,9 @@ export const createS3MultipartUpload = async (
     delete command.ContentType;
   }
 
-  const multipartUpload = await s3.send(new CreateMultipartUploadCommand(command));
+  const multipartUpload = await s3.send(
+    new CreateMultipartUploadCommand(command)
+  );
   const { UploadId } = multipartUpload;
 
   return {
