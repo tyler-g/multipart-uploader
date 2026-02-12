@@ -1,6 +1,6 @@
 {
   "name": "@tyler-g/multipart-uploader",
-  "version": "0.0.1",
+  "version": "0.0.2-0",
   "description": "a lightweight, highly configurable, resumable multipart s3 uploader",
   "main": "dist/shared/index.js",
   "types": "dist/shared/index.d.ts",
