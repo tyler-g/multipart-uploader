@@ -53,5 +53,18 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.670.0",
     "@aws-sdk/s3-request-presigner": "^3.988.0"
-  }
+  },
+  "keywords": [
+    "upload",
+    "multipart",
+    "s3",
+    "aws s3",
+    "bucket",
+    "file upload",
+    "video upload",
+    "multipart upload",
+    "large file upload",
+    "presigned url",
+    "secure uploader"
+  ]
 }
