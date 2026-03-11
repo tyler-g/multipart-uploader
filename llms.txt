@@ -1,0 +1,143 @@
+# @tyler-g/multipart-uploader
+
+> Drop-in multipart S3 file upload for any JavaScript app. Handles chunking, presigned URLs, concurrency, progress tracking, and resume — so you don't have to.
+
+## Install
+
+```
+npm i @tyler-g/multipart-uploader
+```
+
+## What this replaces
+
+Without this package, uploading large files to S3 requires manually orchestrating:
+1. `CreateMultipartUpload` to get an upload ID
+2. `UploadPart` with presigned URLs for each chunk
+3. `CompleteMultipartUpload` with all ETags
+4. Error handling, retry logic, progress tracking, and resume state
+
+This package handles all of that with two classes: `MultipartUploader` (client) and `MultipartUploaderBackend` (server).
+
+## Client usage
+
+```typescript
+import { MultipartUploader } from '@tyler-g/multipart-uploader/client';
+
+const uploader = new MultipartUploader({
+  serverConfig: {
+    endpoint: 'https://api.example.com',
+  },
+});
+
+uploader.on('totalProgress', (progress) => console.log(`${progress}%`));
+uploader.on('uploadComplete', (s3Key) => console.log('Uploaded:', s3Key));
+uploader.on('uploadFailed', (err, localRecord) => console.error(err));
+
+const s3Key = await uploader.uploadMultipart(file);
+```
+
+### Client options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `serverConfig.endpoint` | `string` | (required) | Backend REST URL |
+| `serverConfig.namespace` | `string` | `'multipart'` | Route prefix on the endpoint |
+| `serverConfig.headers` | `Record<string, any>` | `{}` | Custom request headers (auth tokens, etc.) |
+| `concurrencyLimit` | `number` | `6` | Max concurrent part uploads |
+| `partMinSizeBytes` | `number` | `10485760` (10MB) | Minimum part size in bytes |
+| `maxNumParts` | `number` | `96` | Maximum number of parts |
+| `debugMode` | `boolean` | `false` | Enable verbose console logging |
+
+### Client events
+
+| Event | Payload | Description |
+|---|---|---|
+| `totalProgress` | `number (0-100)` | Upload progress percentage |
+| `uploadComplete` | `string` | S3 filename (key) of completed upload |
+| `uploadFailed` | `Error, LocalUploadRecord` | Upload failure with error and resume state |
+| `error` | `Error` | General error |
+| `uploadStarted` | — | Upload began |
+| `uploadResumed` | `number, LocalUploadRecord` | Resumed from previous failed upload |
+| `uploadCreated` | `string, string` | AWS upload ID and S3 filename assigned |
+| `uploadPartStarted` | `number` | Part number about to upload |
+| `uploadPartSignedUrl` | `number, string` | Part received its presigned URL |
+| `uploadPartSuccess` | `number` | Part successfully uploaded to S3 |
+
+## Server usage (Express example)
+
+```typescript
+import express from 'express';
+import { MultipartUploaderBackend } from '@tyler-g/multipart-uploader/server';
+
+const app = express();
+app.use(express.json());
+
+const uploaderBackend = new MultipartUploaderBackend({
+  awsConfig: {
+    bucket: 'my-s3-bucket',
+    s3Config: { region: 'us-east-1' },
+  },
+});
+
+// Three routes required:
+app.post('/multipart/create', async (req, res) => {
+  res.json(await uploaderBackend.createMultipartUpload(req.body));
+});
+
+app.post('/multipart/part', async (req, res) => {
+  res.json(await uploaderBackend.uploadMultipartPart(req.body));
+});
+
+app.post('/multipart/complete', async (req, res) => {
+  res.json(await uploaderBackend.completeMultipartUpload(req.body));
+});
+
+app.listen(3000);
+```
+
+### Server options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `awsConfig.bucket` | `string` | (required) | S3 bucket name |
+| `awsConfig.signedUrlExpiration` | `number` | `180` | Presigned URL expiration in seconds |
+| `awsConfig.s3Config` | `S3ClientConfig` | `{ region: 'us-east-1' }` | AWS SDK S3 client config |
+| `filenameGeneratorFn` | `() => string` | `null` (uses crypto UUID) | Custom filename generator |
+| `debugMode` | `boolean` | `false` | Enable verbose console logging |
+
+### Server methods
+
+- `createMultipartUpload(req)` → `{ uploadId, s3Filename }`
+- `uploadMultipartPart(req)` → `{ partNumber, uploadId, s3Filename, signedUrl }`
+- `completeMultipartUpload(req)` → `{ s3Filename }`
+
+## Shared types (importable)
+
+```typescript
+import type {
+  CreateMultipartUploadRequest,
+  CreateMultipartUploadResponse,
+  UploadMultipartPartRequest,
+  UploadMultipartPartResponse,
+  CompleteMultipartUploadRequest,
+  CompleteMultipartUploadResponse,
+  UploadPartResponse,
+  NumberPercentageRange,
+} from '@tyler-g/multipart-uploader';
+```
+
+## AWS permissions required
+
+The IAM credentials need `s3:PutObject` and `s3:GetObject` on the target bucket.
+
+## Key features
+
+- Automatic chunking and part size calculation
+- Resumable uploads (saved to localStorage, survives refresh/network loss)
+- Concurrent part uploads with configurable throttling
+- Real-time progress tracking (0-100%)
+- Presigned URL security — files go directly from browser to S3
+- Supports files up to 5TB
+- Full TypeScript types
+- Works with any JS frontend framework (React, Vue, Svelte, vanilla)
+- Works with any REST backend (Express, Fastify, Hono, Koa, etc.)
