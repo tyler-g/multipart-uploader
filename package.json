@@ -1,7 +1,8 @@
 {
   "name": "@tyler-g/multipart-uploader",
   "version": "1.0.1",
-  "description": "a lightweight, highly configurable, resumable multipart s3 uploader",
+  "description": "Drop-in resumable multipart S3 file uploads for any JavaScript app — handles chunking, presigned URLs, concurrency, progress tracking, and resume automatically",
+
   "main": "dist/shared/index.js",
   "types": "dist/shared/index.d.ts",
   "type": "module",
@@ -20,7 +21,9 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "llms.txt",
+    "CLAUDE.md"
   ],
   "scripts": {
     "build": "tsc",
@@ -50,6 +53,28 @@
   },
   "author": "mail@tyler-g.com",
   "license": "Apache-2.0",
+  "keywords": [
+    "s3",
+    "upload",
+    "multipart",
+    "multipart-upload",
+    "aws",
+    "aws-s3",
+    "file-upload",
+    "large-file-upload",
+    "resumable-upload",
+    "presigned-url",
+    "chunked-upload",
+    "progress-tracking",
+    "s3-upload",
+    "browser-upload",
+    "direct-upload",
+    "typescript",
+    "react",
+    "vue",
+    "express",
+    "node"
+  ],
   "dependencies": {
     "@aws-sdk/client-s3": "^3.670.0",
     "@aws-sdk/s3-request-presigner": "^3.988.0"
